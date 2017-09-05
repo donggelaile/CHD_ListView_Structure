@@ -13,7 +13,7 @@
 * 无论开启或关闭，只在**DEBUG**模式下生效
 * **Header**、**Cell**、**Footer**使用不同颜色线框包围，并在其上展示类名及其**Index**
 * 提供一个简单的可拖动的**Toggle**按钮，实时隐藏或显示**ListView**的结构(未开启时**Toggle**不会生效)
-* 简单的内存泄漏判断依据（点击**Toggle**按钮时会打印当前已经创建的**ListView**总个数，当你返回到上一页面再次点击**Toggle**按钮时，如果个数未减少，那么可能存在内存泄漏）
+* 简单的内存泄漏判断依据（点击**Toggle**按钮时会打印当前存活的**ListView**总个数，当你返回到上一页面再次点击**Toggle**按钮时，如果个数未减少，那么可能存在内存泄漏）
 ## 效果
 对开源项目[百思不得姐(高仿)](https://github.com/targetcloud/baisibudejie)做了结构分析，其中部分效果图如下:
 ![baisi1](https://ws2.sinaimg.cn/large/006tKfTcly1fj8hygcal1j30fo0t2q70.jpg)
