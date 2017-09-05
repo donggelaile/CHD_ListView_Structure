@@ -183,7 +183,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 + (void)addToggleView
 {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        UIWindow *window = [[[UIApplication sharedApplication] windows] lastObject];
+        UIWindow *window = [[[UIApplication sharedApplication] delegate] window];
         CGFloat btnW = 50.0f;
         CHD_SwitchView *btn = [[CHD_SwitchView alloc] initWithFrame:CGRectMake(0, 50, btnW, btnW)];
         [btn setTitle:@"Toggle" forState:UIControlStateNormal];
