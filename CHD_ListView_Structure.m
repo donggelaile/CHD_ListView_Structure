@@ -168,7 +168,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         return;
     }
     isCalled = YES;
-
+    
     if (isOpenT) {
         [CHD_ListView_Structure hookTable];
     }
@@ -241,7 +241,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 }
 
 - (void)revertHooks
-{    
+{
     for (NSString *info in [swizzedData allKeys]) {
         //类名中或方法名中不要包含_chd_hook_
         NSArray *temp = [info componentsSeparatedByString:@"_chd_hook_"];
@@ -270,29 +270,41 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     if (!oriObj ||!sel) {
         return YES;
     }
-    return [swizzedData[[self getUniqueStr:oriObj sel:sel]] boolValue];
+    BOOL isFatherChanged = NO;//查找是否有父类或同类已经交换过
+    for (NSString *keys in [swizzedData allKeys]) {
+        NSString *saveClass = [[keys componentsSeparatedByString:@"_chd_hook_"] firstObject];
+        if ([oriObj isKindOfClass:NSClassFromString(saveClass)] && [swizzedData[[self getUniqueStr:saveClass sel:sel]] boolValue]) {
+            isFatherChanged = YES;
+            break;
+        }
+    }
+    if (isFatherChanged) {
+        return isFatherChanged;
+    }
+    
+    return [swizzedData[[self getUniqueStr:NSStringFromClass([oriObj class]) sel:sel]] boolValue];
 }
 - (void)hookSelectors:(NSArray *)selArr orginalObj:(id)oriObj swizzedObj:(id)newObj
 {
-
+    
     for (NSString *selStr in selArr) {
         SEL sel  = NSSelectorFromString(selStr);
         SEL newSel = NSSelectorFromString([@"CHD_" stringByAppendingString:selStr]);
         if (![self chenckIsSwizzedOrgObj:oriObj sel:selStr]) {
             __CHD_Instance_Transition_Swizzle([oriObj class], sel, [newObj class], newSel);
-            swizzedData[[self getUniqueStr:oriObj  sel:selStr]] = @(YES);
+            swizzedData[[self getUniqueStr:NSStringFromClass([oriObj class])  sel:selStr]] = @(YES);
         }
     }
     
     
 }
 
-- (nullable NSString *)getUniqueStr:(id)oriObj sel:(NSString*)sel
+- (nullable NSString *)getUniqueStr:(NSString*)oriObjClass sel:(NSString*)sel
 {
-    if (!oriObj||!sel) {
+    if (!oriObjClass||!sel) {
         return nil;
     }
-    return [NSString stringWithFormat:@"%@_chd_hook_%@",NSStringFromClass([oriObj class]),sel];
+    return [NSString stringWithFormat:@"%@_chd_hook_%@",oriObjClass,sel];
 }
 
 
@@ -600,7 +612,7 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
         identifier = CHD_Default_Collection_Footer_Key;
     }
     UICollectionReusableView *sectionView = [collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:identifier forIndexPath:indexPath];
-
+    
     return sectionView;
 }
 @end
