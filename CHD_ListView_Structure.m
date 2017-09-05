@@ -95,9 +95,9 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     IMP swizzledIMP = method_getImplementation(swizzledMethod);
     const char *originalType = method_getTypeEncoding(originalMethod);
     const char *swizzledType = method_getTypeEncoding(swizzledMethod);
-    //给原对象增加swizzledSelector方法
+    //给原对象增加swizzledSelector方法,实现为originalIMP
     class_replaceMethod(originalClass,swizzledSelector,originalIMP,originalType);
-    //交换原对象的originalSelector与swizzledSelector
+    //替换originalSelector的实现为swizzledIMP
     class_replaceMethod(originalClass,originalSelector,swizzledIMP,swizzledType);
 #endif
     
