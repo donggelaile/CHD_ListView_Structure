@@ -311,7 +311,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 - (void)resetCHD_HoverView
 {
     NSArray *WeakListViewArr = [[[CHD_HookHelper shareInstance].weakListViewDic keyEnumerator] allObjects];
-    NSLog(@"当前listView个数：%ld",WeakListViewArr.count);
+    NSLog(@"当前listView个数：%@",@(WeakListViewArr.count));
     for (UIView *listView in WeakListViewArr) {
         if ([listView isKindOfClass:[UITableView class]] || [listView isKindOfClass:[UICollectionView class]]) {
             //先清空所有的CHD_HoverLabel
