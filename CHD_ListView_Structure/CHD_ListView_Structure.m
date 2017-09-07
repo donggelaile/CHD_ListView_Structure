@@ -19,6 +19,7 @@
 @interface CHD_HookHelper : NSObject
 @property (nonatomic, retain) NSMapTable *weakListViewDic;
 + (instancetype)shareInstance;
+- (void)hookSelectors:(NSArray *)selArr orginalObj:(id)oriObj swizzedObj:(id)newObj;
 - (void)revertHooks;
 @end
 
@@ -52,12 +53,13 @@
 
 
 
-
+#define chd_table_head_view_color [UIColor magentaColor]
 #define chd_table_cell_color [UIColor redColor]
 #define chd_table_header_color [UIColor blueColor]
 #define chd_table_footer_color [UIColor greenColor]
 #define chd_text_bg_alpha 0.7
 #define chd_table_text_color [UIColor whiteColor]
+#define chd_table_footer_view_color [UIColor blackColor]
 
 
 #define chd_collection_cell_color [UIColor orangeColor]
@@ -203,8 +205,10 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wundeclared-selector"
-    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDelegate:), [UITableView class],@selector(CHD_SetDelegate:));
-    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDataSource:), [UITableView class],@selector(CHD_SetDataSource:));
+    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDelegate:), [UITableView class],@selector(CHD_setDelegate:));
+    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDataSource:), [UITableView class],@selector(CHD_setDataSource:));
+    NSArray *selArr = @[@"setTableFooterView:",@"setTableHeaderView:"];
+    [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:[UITableView new] swizzedObj:[UITableView new]];
 #pragma clang diagnostic pop
     
 }
@@ -212,8 +216,8 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wundeclared-selector"
-    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDelegate:), [UICollectionView class], @selector(CHD_SetDelegate:));
-    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDataSource:), [UICollectionView class], @selector(CHD_SetDataSource:));
+    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDelegate:), [UICollectionView class], @selector(CHD_setDelegate:));
+    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDataSource:), [UICollectionView class], @selector(CHD_setDataSource:));
 #pragma clang diagnostic pop
 }
 
@@ -323,6 +327,18 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
             
             //清空后刷新当前listView
             [listView performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:NO];
+            
+            //刷新tableHederView、tableFooterView
+            if ([listView isKindOfClass:[UITableView class]]) {
+                UIView *tabelHeader = [(UITableView *)listView tableHeaderView];
+                if (tabelHeader) {
+                    [(UITableView *)listView setTableHeaderView:tabelHeader];
+                }
+                UIView *tableFooter = [(UITableView *)listView tableFooterView];
+                if (tableFooter) {
+                    [(UITableView *)listView setTableFooterView:tableFooter];
+                }
+            }
         }
     }
     
@@ -412,7 +428,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 
 #pragma mark - UITableView (CHD_Structure)
 @implementation UITableView (CHD_Structure)
-- (void)CHD_SetDelegate:(id)delegate
+- (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
         
@@ -421,10 +437,10 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:self];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
     }
-    [self CHD_SetDelegate:delegate];
+    [self CHD_setDelegate:delegate];
     
 }
-- (void)CHD_SetDataSource:(id)dataSource
+- (void)CHD_setDataSource:(id)dataSource
 {
     if (dataSource) {
         NSArray *selArr = @[@"tableView:cellForRowAtIndexPath:"];
@@ -432,9 +448,23 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:self];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
     }
-    [self CHD_SetDataSource:dataSource];
+    [self CHD_setDataSource:dataSource];
+    
 }
 
+
+- (void)CHD_setTableHeaderView:(UIView *)tableHeaderView
+{
+    UILabel *headerHover = [tableHeaderView hoverView:chd_table_head_view_color];
+    headerHover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"HeaderView--%@",NSStringFromClass([tableHeaderView class])] textColor:chd_table_text_color backGroundColor:chd_table_head_view_color];
+    [self CHD_setTableHeaderView:tableHeaderView];
+}
+- (void)CHD_setTableFooterView:(UIView *)tableFooterView
+{
+    UILabel *footerHover = [tableFooterView hoverView:chd_table_footer_view_color];
+    footerHover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"FooterView--%@",NSStringFromClass([tableFooterView class])] textColor:chd_table_text_color backGroundColor:chd_table_footer_view_color];
+    [self CHD_setTableFooterView:tableFooterView];
+}
 
 
 -(UITableViewCell *)CHD_tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -529,7 +559,7 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
 
 @implementation UICollectionView (CHD_Structure)
 
-- (void)CHD_SetDelegate:(id)delegate
+- (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
         NSArray *selArr = @[@"collectionView:layout:referenceSizeForFooterInSection:",@"collectionView:layout:referenceSizeForHeaderInSection:"];
@@ -539,9 +569,9 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
         [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
         [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
     }
-    [self CHD_SetDelegate:delegate];
+    [self CHD_setDelegate:delegate];
 }
-- (void)CHD_SetDataSource:(id)dataSource
+- (void)CHD_setDataSource:(id)dataSource
 {
     if (dataSource) {
         NSArray *selArr = @[@"collectionView:cellForItemAtIndexPath:",@"collectionView:viewForSupplementaryElementOfKind:atIndexPath:"];
@@ -551,7 +581,7 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
         [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
         [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
     }
-    [self CHD_SetDataSource:dataSource];
+    [self CHD_setDataSource:dataSource];
 }
 
 - (__kindof UICollectionViewCell *)CHD_collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
