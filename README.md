@@ -36,7 +36,7 @@ pod 'CHD_ListView_Structure'
 ![TX2](https://ws1.sinaimg.cn/large/006tKfTcly1fj9n1k901xj30ku112wj7.jpg)
 ![TX3](https://ws4.sinaimg.cn/large/006tKfTcly1fj9n2ogosej30ku112teq.jpg)
 ![TX4](https://ws4.sinaimg.cn/large/006tKfTcly1fj9nnz1d97j30ku112tc9.jpg)
-(说明下:在Hook第三方ipa的情况下，测试的时候需要将所有CHD_ListView_Structure的代码复制到IPAPatchEntry文件中才能正常运行，而非import在调用。如果按正常工程import在调用的话会报找不到方法，原因未知)
+
 ## 其他
 如有问题，还请指正，共同进步。如果对您有所帮助，希望给颗✨✨(即使现在不用，收藏起来也是极好的)
 ## LICENSE
