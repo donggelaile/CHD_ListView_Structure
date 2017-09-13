@@ -25,18 +25,18 @@ pod 'CHD_ListView_Structure'
 ## 效果
 #### 1、百思不得姐(高仿)
 对开源项目[百思不得姐(高仿)](https://github.com/targetcloud/baisibudejie)做了结构分析，其中部分效果图如下:
-![](https://ws3.sinaimg.cn/large/006tNc79ly1fjhrbevb37j30ci0m8gxk.jpg)
+![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhriius4jj30ci0m8gxk.jpg)
 ![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrbfdhj3j30ci0m8ndl.jpg)
-![](https://ws1.sinaimg.cn/large/006tNc79ly1fjhrbfmo8sj30ci0m8dmf.jpg)
-![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrbfwb4uj30ci0m8gqs.jpg)
+![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhriyqmnwj30ci0m8dmf.jpg)
+![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhrjdd6jij30ci0m8gqs.jpg)
 ![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhrbg7k9wj30ci0m80ys.jpg)
 
 #### 2、腾讯新闻
 借助神奇的工具[IPAPatch](https://github.com/Naituw/IPAPatch)来看下大厂是如何使用tableView的,部分页面如下:
 ![TX1](https://ws2.sinaimg.cn/large/006tNc79ly1fjhp7cc4qxj30ci0m8n7y.jpg)
 ![TX2](https://ws2.sinaimg.cn/large/006tNc79ly1fjhqzaoaduj30ci0m8qcm.jpg)
-![TX3](https://ws2.sinaimg.cn/large/006tNc79ly1fjhqzwdn0jj30ci0m8wor.jpg)
-![TX4](https://ws2.sinaimg.cn/large/006tNc79ly1fjhqzzbbsij30ci0m8q7n.jpg)
+![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrk82c3nj30ci0m8wor.jpg)
+![](https://ws1.sinaimg.cn/large/006tNc79ly1fjhrko7bsij30ci0m8q7n.jpg)
 
 
 
