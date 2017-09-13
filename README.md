@@ -32,8 +32,8 @@ pod 'CHD_ListView_Structure'
 
 #### 2、腾讯新闻
 借助神奇的工具[IPAPatch](https://github.com/Naituw/IPAPatch)来看下大厂是如何使用tableView的,部分页面如下:
-![TX1](https://ws1.sinaimg.cn/large/006tKfTcly1fj9mgzkcy6j30ku112dl7.jpg)
-![TX2](https://ws1.sinaimg.cn/large/006tKfTcly1fj9n1k901xj30ku112wj7.jpg)
+![TX1](https://ws2.sinaimg.cn/large/006tNc79ly1fjhp7cc4qxj30ci0m8n7y.jpg)
+![TX2](https://ws2.sinaimg.cn/large/006tNc79ly1fjhphecdcij30ci0m8qcm.jpg)
 ![TX3](https://ws4.sinaimg.cn/large/006tKfTcly1fj9n2ogosej30ku112teq.jpg)
 ![TX4](https://ws4.sinaimg.cn/large/006tKfTcly1fj9nnz1d97j30ku112tc9.jpg)
 
