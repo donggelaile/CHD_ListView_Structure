@@ -25,9 +25,8 @@ pod 'CHD_ListView_Structure'
 ## 效果
 #### 1、百思不得姐(高仿)
 对开源项目[百思不得姐(高仿)](https://github.com/targetcloud/baisibudejie)做了结构分析，其中部分效果图如下:
-![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhriius4jj30ci0m8gxk.jpg)
 ![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrbfdhj3j30ci0m8ndl.jpg)
-![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhriyqmnwj30ci0m8dmf.jpg)
+![](https://ws3.sinaimg.cn/large/006tNc79ly1fjhroviiwsj30ci0m8dmf.jpg)
 ![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhrjdd6jij30ci0m8gqs.jpg)
 ![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhrbg7k9wj30ci0m80ys.jpg)
 
