@@ -108,8 +108,9 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     //替换originalSelector的实现为swizzledIMP
     class_replaceMethod(originalClass,originalSelector,swizzledIMP,swizzledType);
     return YES;
-#endif
+#else
     return NO;
+#endif
 }
 
 @implementation CHD_SwitchView
