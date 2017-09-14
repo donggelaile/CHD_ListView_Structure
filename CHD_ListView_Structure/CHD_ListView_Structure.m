@@ -109,7 +109,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     class_replaceMethod(originalClass,originalSelector,swizzledIMP,swizzledType);
     return YES;
 #endif
-    
+    return NO;
 }
 
 @implementation CHD_SwitchView
