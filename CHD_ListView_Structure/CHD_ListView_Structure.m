@@ -43,12 +43,17 @@
 @interface UITableView (CHD_Structure)
 @end
 
+@interface CHD_TableHelper : NSObject
+@end
+
+
 
 //UICollectionView
 @interface UICollectionView (CHD_Structure)
-
 @end
 
+@interface CHD_CollectionHelper : NSObject
+@end
 
 
 
@@ -73,9 +78,9 @@
 static NSString *const CHD_MapTable_Obj = @"CHD_MapTable_Obj";
 
 
-void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector, Class swizzledClass, SEL swizzledSelector){
+BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector, Class swizzledClass, SEL swizzledSelector){
 #ifdef DEBUG
-    //实质上并不是交换两个类的方法，而是先对originalClass对象增加swizzledSelector方法，然后与自己的originalSelector交换。swizzledClass仅作为 要交换方法的提供者。
+
     Method originalMethod = class_getInstanceMethod(originalClass, originalSelector);
     Method swizzledMethod = class_getInstanceMethod(swizzledClass, swizzledSelector);
     
@@ -91,7 +96,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     }
     
     if (!originalMethod || !swizzledMethod) {
-        return;
+        return NO;
     }
     
     IMP originalIMP = method_getImplementation(originalMethod);
@@ -102,6 +107,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     class_replaceMethod(originalClass,swizzledSelector,originalIMP,originalType);
     //替换originalSelector的实现为swizzledIMP
     class_replaceMethod(originalClass,originalSelector,swizzledIMP,swizzledType);
+    return YES;
 #endif
     
 }
@@ -211,7 +217,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDelegate:), [UITableView class],@selector(CHD_setDelegate:));
     __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDataSource:), [UITableView class],@selector(CHD_setDataSource:));
     NSArray *selArr = @[@"setTableFooterView:",@"setTableHeaderView:"];
-    [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:[UITableView new] swizzedObj:[UITableView new]];
+    [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:[UITableView new] swizzedObj:[CHD_TableHelper class]];
 #pragma clang diagnostic pop
     
 }
@@ -286,6 +292,15 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         }
     }
     if (isFatherChanged) {
+        /*
+         1、父类已经交换过
+         2、这里未对子类再进行交换，原因是如果子类重载了方法并且调用了[super someMethod]将会递归循环
+         3、目前可以判断子类是否重载了某个函数，但无法判断子类内部是否调用了[super someMethod]，所以目前先不对子类做处理
+         4、未对子类进行处理的情况下，如果子类调用了[super someMethod]或未重载父类方法将会正常显示，否则子类的页面将无法显示结构
+         5、如果子类未重载方法，class_getInstanceMethod获取的将是父类的实现，父类的实现目前可能已被交换为SwizzeIMP,也会出现问题。。
+         */
+        
+        //综上有两种建议：1、不使用继承实现delegate和dataSource的方法 2、使用了继承在子类重载的话要调用[super someMethod]
         return isFatherChanged;
     }
     
@@ -298,8 +313,10 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         SEL sel  = NSSelectorFromString(selStr);
         SEL newSel = NSSelectorFromString([@"CHD_" stringByAppendingString:selStr]);
         if (![self chenckIsSwizzedOrgObj:oriObj sel:selStr]) {
-            __CHD_Instance_Transition_Swizzle([oriObj class], sel, [newObj class], newSel);
-            swizzedData[[self getUniqueStr:NSStringFromClass([oriObj class])  sel:selStr]] = @(YES);
+            BOOL isSuccess = __CHD_Instance_Transition_Swizzle([oriObj class], sel, [newObj class], newSel);
+            if (isSuccess) {
+                swizzedData[[self getUniqueStr:NSStringFromClass([oriObj class])  sel:selStr]] = @(YES);
+            }
         }
     }
     
@@ -451,7 +468,7 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         
         NSArray *selArr = @[@"tableView:viewForHeaderInSection:",@"tableView:viewForFooterInSection:",@"tableView:heightForHeaderInSection:",@"tableView:heightForFooterInSection:"];
         
-        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:self];
+        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_TableHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
     }
     [self CHD_setDelegate:delegate];
@@ -462,13 +479,16 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     if (dataSource) {
         NSArray *selArr = @[@"tableView:cellForRowAtIndexPath:"];
         
-        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:self];
+        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:[CHD_TableHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
     }
     [self CHD_setDataSource:dataSource];
     
 }
 
+@end
+
+@implementation CHD_TableHelper
 
 - (void)CHD_setTableHeaderView:(UIView *)tableHeaderView
 {
@@ -546,8 +566,11 @@ void __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     return tableView.sectionFooterHeight == 22.0f?0:tableView.sectionFooterHeight;
 }
 
-
 @end
+
+
+
+
 
 
 
@@ -581,7 +604,7 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
     if (delegate) {
         NSArray *selArr = @[@"collectionView:layout:referenceSizeForFooterInSection:",@"collectionView:layout:referenceSizeForHeaderInSection:"];
         
-        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:self];
+        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_CollectionHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
         [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
         [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
@@ -593,13 +616,17 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
     if (dataSource) {
         NSArray *selArr = @[@"collectionView:cellForItemAtIndexPath:",@"collectionView:viewForSupplementaryElementOfKind:atIndexPath:"];
         
-        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:self];
+        [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:[CHD_CollectionHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
         [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
         [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
     }
     [self CHD_setDataSource:dataSource];
 }
+
+@end
+
+@implementation CHD_CollectionHelper
 
 - (__kindof UICollectionViewCell *)CHD_collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -662,7 +689,10 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
     
     return sectionView;
 }
+
 @end
+
+
 
 
 
