@@ -111,6 +111,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 #else
     return NO;
 #endif
+
 }
 
 @implementation CHD_SwitchView
@@ -467,7 +468,17 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 {
     if (delegate) {
         
-        NSArray *selArr = @[@"tableView:viewForHeaderInSection:",@"tableView:viewForFooterInSection:",@"tableView:heightForHeaderInSection:",@"tableView:heightForFooterInSection:"];
+        NSMutableArray *selArr = @[@"tableView:viewForHeaderInSection:",@"tableView:viewForFooterInSection:",@"tableView:heightForHeaderInSection:",@"tableView:heightForFooterInSection:"].mutableCopy;
+
+        //这里暂时认为delegate就是dataSource-----------(不支持如下方式实现的Header或Footer的结构展示...)
+        if ([delegate respondsToSelector:@selector(tableView: titleForHeaderInSection:)]) {
+            [selArr removeObject:@"tableView:heightForHeaderInSection:"];
+        }
+        if ([delegate respondsToSelector:@selector(tableView: titleForFooterInSection:)]) {
+            [selArr removeObject:@"tableView:heightForFooterInSection:"];
+        }
+        //------------------------------------------(如果实现了上述方法则不再强制添加tableView:heightForHeaderInSection:等方法)
+        
         
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_TableHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
