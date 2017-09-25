@@ -299,7 +299,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
          2、这里未对子类再进行交换，原因是如果子类重载了方法并且调用了[super someMethod]将会递归循环
          3、目前可以判断子类是否重载了某个函数，但无法判断子类内部是否调用了[super someMethod]，所以目前先不对子类做处理
          4、未对子类进行处理的情况下，如果子类调用了[super someMethod]或未重载父类方法将会正常显示，否则子类的页面将无法显示结构
-         5、如果子类未重载方法，class_getInstanceMethod获取的将是父类的实现，父类的实现目前可能已被交换为SwizzeIMP,也会出现问题。。
+         5、如果子类未重载方法，class_getInstanceMethod获取的将是父类的实现，父类的实现目前可能已被交换为SwizzeIMP,此时再交换的话，也会出现问题。。
          */
         
         //综上有两种建议：1、不使用继承实现delegate和dataSource的方法 2、使用了继承在子类重载的话要调用[super someMethod]
