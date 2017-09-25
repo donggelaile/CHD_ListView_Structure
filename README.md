@@ -25,18 +25,17 @@ pod 'CHD_ListView_Structure'
 ## 效果
 #### 1、百思不得姐(高仿)
 对开源项目[百思不得姐(高仿)](https://github.com/targetcloud/baisibudejie)做了结构分析，其中部分效果图如下:
-![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrbfdhj3j30ci0m8ndl.jpg)
-![](https://ws3.sinaimg.cn/large/006tNc79ly1fjhroviiwsj30ci0m8dmf.jpg)
-![](https://ws3.sinaimg.cn/large/006tNc79ly1fjhrrdsjmmj30ci0m8gqs.jpg)
-![](https://ws2.sinaimg.cn/large/006tNc79ly1fjhrbg7k9wj30ci0m80ys.jpg)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/BSBDJ/IMG_1663.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/BSBDJ/IMG_1664.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/BSBDJ/IMG_1665.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/BSBDJ/IMG_1666.PNG?raw=true)
 
-#### 2、腾讯新闻
+#### 2、网易云阅读
 借助神奇的工具[IPAPatch](https://github.com/Naituw/IPAPatch)来看下大厂是如何使用tableView的,部分页面如下:
-![TX1](https://ws2.sinaimg.cn/large/006tNc79ly1fjhp7cc4qxj30ci0m8n7y.jpg)
-![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrt1851uj30ci0m8qcm.jpg)
-![](https://ws4.sinaimg.cn/large/006tNc79ly1fjhrk82c3nj30ci0m8wor.jpg)
-![](https://ws1.sinaimg.cn/large/006tNc79ly1fjhrko7bsij30ci0m8q7n.jpg)
-
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/WYYYD/IMG_1667.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/WYYYD/IMG_1668.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/WYYYD/IMG_1669.PNG?raw=true)
+![](https://github.com/donggelaile/CHD_ListView_Structure/blob/master/ScreenShots/WYYYD/IMG_1670.PNG?raw=true)
 
 
 ## 其他
