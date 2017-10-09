@@ -86,12 +86,14 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     
     if (!originalMethod) {
         //如果原对象原方法未实现，查看交换类是否帮其实现了原类方法
-        Method tempM = class_getInstanceMethod(swizzledClass, originalSelector);
-        if (tempM) {
-            //给原对象增加原方法
-            class_addMethod(originalClass, originalSelector, method_getImplementation(tempM), method_getTypeEncoding(tempM));
-            //更新原对象实现
-            originalMethod = class_getInstanceMethod(originalClass, originalSelector);
+        if ([UIDevice currentDevice].systemVersion.floatValue<11.0) {//iOS11 主动添加viewForFooterInSection 将会与原UI不一致，这里对11.0以上系统不在添加
+            Method tempM = class_getInstanceMethod(swizzledClass, originalSelector);
+            if (tempM) {
+                //给原对象增加原方法
+                class_addMethod(originalClass, originalSelector, method_getImplementation(tempM), method_getTypeEncoding(tempM));
+                //更新原对象实现
+                originalMethod = class_getInstanceMethod(originalClass, originalSelector);
+            }
         }
     }
     
