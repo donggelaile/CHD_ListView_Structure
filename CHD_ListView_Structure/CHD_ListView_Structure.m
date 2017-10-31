@@ -86,14 +86,12 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     
     if (!originalMethod) {
         //如果原对象原方法未实现，查看交换类是否帮其实现了原类方法
-        if ([UIDevice currentDevice].systemVersion.floatValue<11.0) {//iOS11 主动添加viewForFooterInSection 将会与原UI不一致，这里对11.0以上系统不在添加
-            Method tempM = class_getInstanceMethod(swizzledClass, originalSelector);
-            if (tempM) {
-                //给原对象增加原方法
-                class_addMethod(originalClass, originalSelector, method_getImplementation(tempM), method_getTypeEncoding(tempM));
-                //更新原对象实现
-                originalMethod = class_getInstanceMethod(originalClass, originalSelector);
-            }
+        Method tempM = class_getInstanceMethod(swizzledClass, originalSelector);
+        if (tempM) {
+            //给原对象增加原方法
+            class_addMethod(originalClass, originalSelector, method_getImplementation(tempM), method_getTypeEncoding(tempM));
+            //更新原对象实现
+            originalMethod = class_getInstanceMethod(originalClass, originalSelector);
         }
     }
     
@@ -469,19 +467,8 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 - (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
-        
-        NSMutableArray *selArr = @[@"tableView:viewForHeaderInSection:",@"tableView:viewForFooterInSection:",@"tableView:heightForHeaderInSection:",@"tableView:heightForFooterInSection:"].mutableCopy;
+        NSMutableArray *selArr = @[@"tableView:willDisplayFooterView:forSection:",@"tableView:willDisplayHeaderView:forSection:"].mutableCopy;
 
-        //这里暂时认为delegate就是dataSource-----------(不支持如下方式实现的Header或Footer的结构展示...)
-        if ([delegate respondsToSelector:@selector(tableView: titleForHeaderInSection:)]) {
-            [selArr removeObject:@"tableView:heightForHeaderInSection:"];
-        }
-        if ([delegate respondsToSelector:@selector(tableView: titleForFooterInSection:)]) {
-            [selArr removeObject:@"tableView:heightForFooterInSection:"];
-        }
-        //------------------------------------------(如果实现了上述方法则不再强制添加tableView:heightForHeaderInSection:等方法)
-        
-        
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_TableHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
     }
@@ -526,58 +513,36 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     
     return cell;
 }
-- (UIView*)CHD_tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
-{
-    UIView *secView = [self CHD_tableView:tableView viewForHeaderInSection:section];
-    if ([secView isKindOfClass:[UILabel class]]) {
-        [secView layoutIfNeeded];
-    }
-    UILabel *hover = [secView hoverView:chd_table_header_color];
-    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Header--%@--%@",NSStringFromClass([secView class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_header_color colorWithAlphaComponent:chd_text_bg_alpha]];
-    
-    return secView;
-}
-- (UIView*)CHD_tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section
-{
-    UIView *secView = [self CHD_tableView:tableView viewForFooterInSection:section];
-    
-    if ([secView isKindOfClass:[UILabel class]]) {
-        [secView layoutIfNeeded];
-    }
-    UILabel *hover = [secView hoverView:chd_table_footer_color];
-    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Footer--%@--%@",NSStringFromClass([secView class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_footer_color colorWithAlphaComponent:chd_text_bg_alpha]];
-    
-    return secView;
-}
-- (CGFloat)CHD_tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
-{
-    return [self CHD_tableView:tableView heightForHeaderInSection:section];
-}
-- (CGFloat)CHD_tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section
-{
-    return [self CHD_tableView:tableView heightForFooterInSection:section];
-}
 
 
-//为delegate实现默认的方法(处理返回高度却没有返回对应View的情况，不添加则无法显示header或footer)。   如果原类已实现下列方法，则会直接与原方法交换。
-- (nullable UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section
+//原代理未实现的话，主动添加一个空实现用来交换。实现了则直接交换
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(nonnull UIView *)view forSection:(NSInteger)section
 {
-    return [UIView new];
 }
-- (nullable UIView *)tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section
+- (void)tableView:(UITableView *)tableView willDisplayFooterView:(nonnull UIView *)view forSection:(NSInteger)section
 {
-    return [UIView new];
 }
-- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
+- (void)CHD_tableView:(UITableView *)tableView willDisplayHeaderView:(nonnull UIView *)view forSection:(NSInteger)section
 {
-    //tableView.sectionHeaderHeight 系统默认值22，这里如果是22则认为开发者未设置此项。(如果想返回22,自己在delegate类中实现该回调方法即可)
-    CGFloat headerH = tableView.sectionHeaderHeight;
-    return headerH == 22.0f?0:headerH;
+    [self CHD_tableView:tableView willDisplayHeaderView:view forSection:section];
+    
+    if ([view isKindOfClass:[UILabel class]]) {
+        [view layoutIfNeeded];
+    }
+    UILabel *hover = [view hoverView:chd_table_header_color];
+    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Header--%@--%@",NSStringFromClass([view class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_header_color colorWithAlphaComponent:chd_text_bg_alpha]];
+    
 }
-- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section
+- (void)CHD_tableView:(UITableView *)tableView willDisplayFooterView:(nonnull UIView *)view forSection:(NSInteger)section
 {
-    //同上
-    return tableView.sectionFooterHeight == 22.0f?0:tableView.sectionFooterHeight;
+    [self CHD_tableView:tableView willDisplayFooterView:view forSection:section];
+    
+    if ([view isKindOfClass:[UILabel class]]) {
+        [view layoutIfNeeded];
+    }
+    UILabel *hover = [view hoverView:chd_table_footer_color];
+    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Footer--%@--%@",NSStringFromClass([view class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_footer_color colorWithAlphaComponent:chd_text_bg_alpha]];
+    
 }
 
 @end
@@ -594,46 +559,27 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 //CollectionView
 #pragma mark - UICollectionView (CHD_Structure)
 
-static NSString *const CHD_Default_Collection_Header_Key = @"CHD_Default_Collection_Header";
-static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collection_Footer";
-
-//header
-@interface CHD_Default_Collection_Header : UICollectionReusableView
-@end
-
-@implementation CHD_Default_Collection_Header
-@end
-
-//footer
-@interface CHD_Default_Collection_Footer : UICollectionReusableView
-@end
-
-@implementation CHD_Default_Collection_Footer
-@end
-
 @implementation UICollectionView (CHD_Structure)
 
 - (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
-        NSArray *selArr = @[@"collectionView:layout:referenceSizeForFooterInSection:",@"collectionView:layout:referenceSizeForHeaderInSection:"];
+        NSArray *selArr = @[@"collectionView:didEndDisplayingSupplementaryView:forElementOfKind:atIndexPath:"];
         
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_CollectionHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
-        [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
-        [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
+
     }
     [self CHD_setDelegate:delegate];
 }
 - (void)CHD_setDataSource:(id)dataSource
 {
     if (dataSource) {
-        NSArray *selArr = @[@"collectionView:cellForItemAtIndexPath:",@"collectionView:viewForSupplementaryElementOfKind:atIndexPath:"];
+        NSArray *selArr = @[@"collectionView:cellForItemAtIndexPath:"];
         
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:dataSource swizzedObj:[CHD_CollectionHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
-        [self registerClass:[CHD_Default_Collection_Header class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:CHD_Default_Collection_Header_Key];
-        [self registerClass:[CHD_Default_Collection_Footer class] forSupplementaryViewOfKind:UICollectionElementKindSectionFooter withReuseIdentifier:CHD_Default_Collection_Footer_Key];
+
     }
     [self CHD_setDataSource:dataSource];
 }
@@ -644,65 +590,33 @@ static NSString *const CHD_Default_Collection_Footer_Key = @"CHD_Default_Collect
 
 - (__kindof UICollectionViewCell *)CHD_collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    
     UICollectionViewCell *cell = [self CHD_collectionView:collectionView cellForItemAtIndexPath:indexPath];
     UILabel *hover = [cell hoverView:chd_collection_cell_color];
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",NSStringFromClass([cell class]),@(indexPath.section),@(indexPath.item)] textColor:chd_collection_text_color backGroundColor:[chd_collection_cell_color colorWithAlphaComponent:chd_collection_bg_alpha]];
     return cell;
 }
 
-- (UICollectionReusableView *)CHD_collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath
+//如果原代理未实现如下方法会主动添加一个空实现
+- (void)collectionView:(UICollectionView *)collectionView didEndDisplayingSupplementaryView:(UICollectionReusableView *)view forElementOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
 {
-    UICollectionReusableView *sectionView = [self CHD_collectionView:collectionView viewForSupplementaryElementOfKind:kind atIndexPath:indexPath];
+}
+
+//使用didEndDisplay而不使用willDisplay是因为willDisplay要求iOS8以上
+- (void)CHD_collectionView:(UICollectionView *)collectionView didEndDisplayingSupplementaryView:(UICollectionReusableView *)view forElementOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
+{
+    [self CHD_collectionView:collectionView didEndDisplayingSupplementaryView:view forElementOfKind:elementKind atIndexPath:indexPath];
     UIColor *sectionViewColor = chd_collection_header_color;
     NSString *Kind = @"Header";
-    if ([kind isEqualToString:UICollectionElementKindSectionFooter]) {
+    if ([elementKind isEqualToString:UICollectionElementKindSectionFooter]) {
         sectionViewColor = chd_collection_footer_color;
         Kind = @"Footer";
     }
-    UILabel *hover = [sectionView hoverView:sectionViewColor];
+    UILabel *hover = [view hoverView:sectionViewColor];
     
-    
-    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",Kind,NSStringFromClass([sectionView class]),@(indexPath.section)] textColor:chd_collection_text_color backGroundColor:[sectionViewColor colorWithAlphaComponent:chd_collection_bg_alpha]];
-    return sectionView;
+    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",Kind,NSStringFromClass([view class]),@(indexPath.section)] textColor:chd_collection_text_color backGroundColor:[sectionViewColor colorWithAlphaComponent:chd_collection_bg_alpha]];
 }
 
 
-- (CGSize)CHD_collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForFooterInSection:(NSInteger)section
-{
-    return [self CHD_collectionView:collectionView layout:collectionViewLayout referenceSizeForFooterInSection:section];
-}
-- (CGSize)CHD_collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForHeaderInSection:(NSInteger)section
-{
-    return [self CHD_collectionView:collectionView layout:collectionViewLayout referenceSizeForHeaderInSection:section];
-}
-
-//返回size为返回对应View时提供默认的Header，Footer.
-- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForHeaderInSection:(NSInteger)section
-{
-    if ([collectionViewLayout isKindOfClass:[UICollectionViewFlowLayout class]]) {
-        return [(UICollectionViewFlowLayout*)collectionViewLayout headerReferenceSize];
-    }
-    return CGSizeZero;
-    
-}
-- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForFooterInSection:(NSInteger)section
-{
-    if ([collectionViewLayout isKindOfClass:[UICollectionViewFlowLayout class]]) {
-        return [(UICollectionViewFlowLayout*)collectionViewLayout footerReferenceSize];
-    }
-    return CGSizeZero;
-}
-- (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath
-{
-    NSString *identifier = CHD_Default_Collection_Header_Key;
-    if ([kind isEqualToString:UICollectionElementKindSectionFooter]) {
-        identifier = CHD_Default_Collection_Footer_Key;
-    }
-    UICollectionReusableView *sectionView = [collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:identifier forIndexPath:indexPath];
-    
-    return sectionView;
-}
 
 @end
 
