@@ -564,7 +564,13 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 - (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
-        NSArray *selArr = @[@"collectionView:didEndDisplayingSupplementaryView:forElementOfKind:atIndexPath:"];
+        NSArray *selArr;
+        if ([UIDevice currentDevice].systemVersion.floatValue>=8.0) {
+            selArr = @[@"collectionView:willDisplaySupplementaryView:forElementKind:atIndexPath:"];
+        }else{
+            selArr = @[@"collectionView:didEndDisplayingSupplementaryView:forElementOfKind:atIndexPath:"];
+        }
+        
         
         [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:delegate swizzedObj:[CHD_CollectionHelper class]];
         [[CHD_HookHelper shareInstance].weakListViewDic setObject:CHD_MapTable_Obj forKey:self];
@@ -597,11 +603,30 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 }
 
 //如果原代理未实现如下方法会主动添加一个空实现
+//iOS8以上
+- (void)collectionView:(UICollectionView *)collectionView willDisplaySupplementaryView:(UICollectionReusableView *)view forElementKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
+{
+    
+}
+//iOS8以下
 - (void)collectionView:(UICollectionView *)collectionView didEndDisplayingSupplementaryView:(UICollectionReusableView *)view forElementOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
 {
 }
 
-//使用didEndDisplay而不使用willDisplay是因为willDisplay要求iOS8以上
+- (void)CHD_collectionView:(UICollectionView *)collectionView willDisplaySupplementaryView:(UICollectionReusableView *)view forElementKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
+{
+    [self CHD_collectionView:collectionView willDisplaySupplementaryView:view forElementKind:elementKind atIndexPath:indexPath];
+    UIColor *sectionViewColor = chd_collection_header_color;
+    NSString *Kind = @"Header";
+    if ([elementKind isEqualToString:UICollectionElementKindSectionFooter]) {
+        sectionViewColor = chd_collection_footer_color;
+        Kind = @"Footer";
+    }
+    UILabel *hover = [view hoverView:sectionViewColor];
+    
+    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",Kind,NSStringFromClass([view class]),@(indexPath.section)] textColor:chd_collection_text_color backGroundColor:[sectionViewColor colorWithAlphaComponent:chd_collection_bg_alpha]];
+}
+
 - (void)CHD_collectionView:(UICollectionView *)collectionView didEndDisplayingSupplementaryView:(UICollectionReusableView *)view forElementOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
 {
     [self CHD_collectionView:collectionView didEndDisplayingSupplementaryView:view forElementOfKind:elementKind atIndexPath:indexPath];
