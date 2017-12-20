@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   #
 
   s.name         = "CHD_ListView_Structure"
-  s.version      = "1.0.4"
+  s.version      = "1.0.5"
   s.summary      = "show the structure of UITableView and UICollectionView (展示tableView和collectionView的结构)"
 
   # This description is used to generate tags and improve search results.
