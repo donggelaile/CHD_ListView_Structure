@@ -187,7 +187,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         [CHD_ListView_Structure hookCollection];
     }
     
-    if (isOpenT||isOpenT) {
+    if (isOpenT||isOpenC) {
         [CHD_ListView_Structure addToggleView];
     }
     
