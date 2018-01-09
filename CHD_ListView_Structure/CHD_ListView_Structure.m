@@ -17,10 +17,12 @@
 
 //HookHelper
 @interface CHD_HookHelper : NSObject
+@property (nonatomic, assign) BOOL is_open_chdTable;
+@property (nonatomic, assign) BOOL is_open_chdCollection;
 @property (nonatomic, retain) NSMapTable *weakListViewDic;
 + (instancetype)shareInstance;
 - (void)hookSelectors:(NSArray *)selArr orginalObj:(id)oriObj swizzedObj:(id)newObj;
-- (void)revertHooks;
+- (void)resetCHD_HoverView;
 @end
 
 
@@ -168,29 +170,22 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 
 
 #pragma mark - CHD_ListView_Structure
+
 @implementation CHD_ListView_Structure
 
 +(void)openStructureShow_TableV:(BOOL)isOpenT collectionV:(BOOL)isOpenC
 {
 #ifdef DEBUG
-    
-    static BOOL isCalled = NO;
-    if (isCalled) {
-        return;
-    }
-    isCalled = YES;
-    
-    if (isOpenT) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        [CHD_HookHelper shareInstance].is_open_chdTable = isOpenT;
+        [CHD_HookHelper shareInstance].is_open_chdCollection = isOpenC;
+        
         [CHD_ListView_Structure hookTable];
-    }
-    if (isOpenC) {
         [CHD_ListView_Structure hookCollection];
-    }
-    
-    if (isOpenT||isOpenC) {
+        
         [CHD_ListView_Structure addToggleView];
-    }
-    
+    });
 #endif
 }
 + (void)addToggleView
@@ -234,7 +229,9 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 
 + (void)tapGesture
 {
-    [[CHD_HookHelper shareInstance] revertHooks];
+    [CHD_HookHelper shareInstance].is_open_chdTable = ![CHD_HookHelper shareInstance].is_open_chdTable;
+    [CHD_HookHelper shareInstance].is_open_chdCollection = ![CHD_HookHelper shareInstance].is_open_chdCollection;
+    [[CHD_HookHelper shareInstance] resetCHD_HoverView];
 }
 
 @end
@@ -255,26 +252,14 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     return helper;
 }
 
-- (void)revertHooks
-{
-    for (NSString *info in [swizzedData allKeys]) {
-        //类名中或方法名中不要包含_chd_hook_
-        NSArray *temp = [info componentsSeparatedByString:@"_chd_hook_"];
-        if (temp.count == 2) {
-            Class hookClass = NSClassFromString(temp[0]);
-            SEL orgSel = NSSelectorFromString(temp[1]);
-            SEL swizeeSel = NSSelectorFromString([@"CHD_" stringByAppendingString:temp[1]]);
-            __CHD_Instance_Transition_Swizzle(hookClass, orgSel, hookClass, swizeeSel);
-        }
-    }
-    [self resetCHD_HoverView];
-}
 
 - (instancetype)init
 {
-    if ([super init]) {
+    if (self = [super init]) {
         swizzedData = @{}.mutableCopy;
         self.weakListViewDic = [NSMapTable mapTableWithKeyOptions:NSPointerFunctionsWeakMemory valueOptions:NSPointerFunctionsCopyIn];
+        self.is_open_chdTable = NO;
+        self.is_open_chdCollection = NO;
     }
     return self;
 }
@@ -340,17 +325,11 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     NSLog(@"当前listView个数：%@",@(WeakListViewArr.count));
     for (UIView *listView in WeakListViewArr) {
         if ([listView isKindOfClass:[UITableView class]] || [listView isKindOfClass:[UICollectionView class]]) {
-            //先清空所有的CHD_HoverLabel
-            [self showView:listView EveryView:^(UIView *subView) {
-                if ([subView isKindOfClass:[CHD_HoverLabel class]]) {
-                    [subView removeFromSuperview];
-                }
-            }];
             
-            //清空后刷新当前listView
+            //刷新当前listView
             [listView performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:NO];
             
-            //刷新tableHederView、tableFooterView
+            //刷新tableHeaderView、tableFooterView
             if ([listView isKindOfClass:[UITableView class]]) {
                 UIView *tabelHeader = [(UITableView *)listView tableHeaderView];
                 if (tabelHeader) {
@@ -366,29 +345,6 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     
 }
 
-
-
-//遍历superView树
-- (void)showView:(UIView*)superView EveryView:(void(^)(UIView*))Block
-{
-    if (!superView||!Block) {
-        return;
-    }
-    
-    NSMutableArray *QueueArr = @[superView].mutableCopy;
-    
-    while (QueueArr.count) {
-        UIView *temp = [QueueArr firstObject];
-        if (temp!=superView) {
-            Block(temp);
-        }
-        [QueueArr removeObjectAtIndex:0];
-        
-        for (UIView* subV in temp.subviews) {
-            [QueueArr addObject:subV];
-        }
-    }
-}
 
 @end
 
@@ -410,18 +366,13 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 
 
 #pragma mark - UIView(CHD_HoverView)
+static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
 @implementation UIView(CHD_HoverView)
 
 - (UILabel *)hoverView:(UIColor*)borderColor
 {
-    __block CHD_HoverLabel *hover = nil;
-    [[[self.subviews reverseObjectEnumerator] allObjects] enumerateObjectsUsingBlock:^(__kindof UIView * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([obj isKindOfClass:[CHD_HoverLabel class]]) {
-            hover = (CHD_HoverLabel*)obj;
-            *stop = YES;
-        }
-    }];
     
+    CHD_HoverLabel *hover = objc_getAssociatedObject(self, CHDHOVERLABELKEY);
     
     if (!hover) {
         hover = [[CHD_HoverLabel alloc] initWithFrame:self.bounds];
@@ -433,6 +384,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         hover.translatesAutoresizingMaskIntoConstraints = YES;
         hover.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         hover.borderColor = borderColor;
+        objc_setAssociatedObject(self, CHDHOVERLABELKEY, hover, OBJC_ASSOCIATION_RETAIN);
         return hover;
     }else{
         [self bringSubviewToFront:hover];
@@ -496,12 +448,14 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     UILabel *headerHover = [tableHeaderView hoverView:chd_table_head_view_color];
     headerHover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"HeaderView--%@",NSStringFromClass([tableHeaderView class])] textColor:chd_table_text_color backGroundColor:chd_table_head_view_color];
     [self CHD_setTableHeaderView:tableHeaderView];
+    headerHover.hidden = ![CHD_HookHelper shareInstance].is_open_chdTable;
 }
 - (void)CHD_setTableFooterView:(UIView *)tableFooterView
 {
     UILabel *footerHover = [tableFooterView hoverView:chd_table_footer_view_color];
     footerHover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"FooterView--%@",NSStringFromClass([tableFooterView class])] textColor:chd_table_text_color backGroundColor:chd_table_footer_view_color];
     [self CHD_setTableFooterView:tableFooterView];
+    footerHover.hidden = ![CHD_HookHelper shareInstance].is_open_chdTable;
 }
 
 
@@ -510,7 +464,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     UITableViewCell *cell = [self CHD_tableView:tableView cellForRowAtIndexPath:indexPath];
     UILabel *hover = [cell hoverView:chd_table_cell_color];
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@--%@--%@",NSStringFromClass([cell class]),@(indexPath.section),@(indexPath.row)] textColor:chd_table_text_color backGroundColor:[chd_table_cell_color colorWithAlphaComponent:chd_text_bg_alpha]];
-    
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdTable;
     return cell;
 }
 
@@ -531,6 +485,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     }
     UILabel *hover = [view hoverView:chd_table_header_color];
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Header--%@--%@",NSStringFromClass([view class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_header_color colorWithAlphaComponent:chd_text_bg_alpha]];
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdTable;
     
 }
 - (void)CHD_tableView:(UITableView *)tableView willDisplayFooterView:(nonnull UIView *)view forSection:(NSInteger)section
@@ -542,7 +497,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     }
     UILabel *hover = [view hoverView:chd_table_footer_color];
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"Footer--%@--%@",NSStringFromClass([view class]),@(section)] textColor:chd_table_text_color backGroundColor:[chd_table_footer_color colorWithAlphaComponent:chd_text_bg_alpha]];
-    
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdTable;
 }
 
 @end
@@ -599,6 +554,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     UICollectionViewCell *cell = [self CHD_collectionView:collectionView cellForItemAtIndexPath:indexPath];
     UILabel *hover = [cell hoverView:chd_collection_cell_color];
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",NSStringFromClass([cell class]),@(indexPath.section),@(indexPath.item)] textColor:chd_collection_text_color backGroundColor:[chd_collection_cell_color colorWithAlphaComponent:chd_collection_bg_alpha]];
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdCollection;
     return cell;
 }
 
@@ -625,6 +581,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     UILabel *hover = [view hoverView:sectionViewColor];
     
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",Kind,NSStringFromClass([view class]),@(indexPath.section)] textColor:chd_collection_text_color backGroundColor:[sectionViewColor colorWithAlphaComponent:chd_collection_bg_alpha]];
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdCollection;
 }
 
 - (void)CHD_collectionView:(UICollectionView *)collectionView didEndDisplayingSupplementaryView:(UICollectionReusableView *)view forElementOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
@@ -639,6 +596,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
     UILabel *hover = [view hoverView:sectionViewColor];
     
     hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",Kind,NSStringFromClass([view class]),@(indexPath.section)] textColor:chd_collection_text_color backGroundColor:[sectionViewColor colorWithAlphaComponent:chd_collection_bg_alpha]];
+    hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdCollection;
 }
 
 
