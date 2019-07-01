@@ -42,7 +42,7 @@
 
 
 //UITableView
-@interface UITableView (CHD_Structure)
+@interface UITableViewHDStructure:NSObject
 @end
 
 @interface CHD_TableHelper : NSObject
@@ -51,7 +51,7 @@
 
 
 //UICollectionView
-@interface UICollectionView (CHD_Structure)
+@interface UICollectionViewHDStructure:NSObject
 @end
 
 @interface CHD_CollectionHelper : NSObject
@@ -73,6 +73,7 @@
 #define chd_collection_cell_color [UIColor orangeColor]
 #define chd_collection_header_color [UIColor purpleColor]
 #define chd_collection_footer_color [UIColor cyanColor]
+#define chd_collection_decoration_color [UIColor blackColor]
 #define chd_collection_bg_alpha 1
 #define chd_collection_text_color [UIColor whiteColor]
 
@@ -194,6 +195,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
         UIWindow *window = [[[UIApplication sharedApplication] delegate] window];
         CGFloat btnW = 50.0f;
         CHD_SwitchView *btn = [[CHD_SwitchView alloc] initWithFrame:CGRectMake(0, 50, btnW, btnW)];
+        btn.alpha = 0.5;
         [btn setTitle:@"Toggle" forState:UIControlStateNormal];
         btn.layer.cornerRadius = btnW/2.0f;
         btn.backgroundColor = [UIColor orangeColor];
@@ -211,8 +213,8 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wundeclared-selector"
-    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDelegate:), [UITableView class],@selector(CHD_setDelegate:));
-    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDataSource:), [UITableView class],@selector(CHD_setDataSource:));
+    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDelegate:), [UITableViewHDStructure class],@selector(CHD_setDelegate:));
+    __CHD_Instance_Transition_Swizzle([UITableView class], @selector(setDataSource:), [UITableViewHDStructure class],@selector(CHD_setDataSource:));
     NSArray *selArr = @[@"setTableFooterView:",@"setTableHeaderView:"];
     [[CHD_HookHelper shareInstance] hookSelectors:selArr orginalObj:[UITableView new] swizzedObj:[CHD_TableHelper class]];
 #pragma clang diagnostic pop
@@ -222,8 +224,8 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wundeclared-selector"
-    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDelegate:), [UICollectionView class], @selector(CHD_setDelegate:));
-    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDataSource:), [UICollectionView class], @selector(CHD_setDataSource:));
+    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDelegate:), [UICollectionViewHDStructure class], @selector(CHD_setDelegate:));
+    __CHD_Instance_Transition_Swizzle([UICollectionView class], @selector(setDataSource:), [UICollectionViewHDStructure class], @selector(CHD_setDataSource:));
 #pragma clang diagnostic pop
 }
 
@@ -238,17 +240,23 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
 
 
 #pragma mark - CHD_HookHelper
+
+static CHD_HookHelper *helper;
+
 @implementation CHD_HookHelper
 {
     NSMutableDictionary *swizzedData;
 }
 + (instancetype)shareInstance
 {
-    static CHD_HookHelper *helper;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
+    UIApplication *app = [UIApplication sharedApplication];
+    
+    helper = objc_getAssociatedObject(app, (__bridge const void * _Nonnull)(@(123)));
+    if (!helper) {
         helper = [[self alloc] init];
-    });
+        objc_setAssociatedObject(app, (__bridge const void * _Nonnull)(@(123)), helper, OBJC_ASSOCIATION_RETAIN);
+    }
+
     return helper;
 }
 
@@ -284,7 +292,6 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
          2、这里未对子类再进行交换，原因是如果子类重载了方法并且调用了[super someMethod]将会递归循环
          3、目前可以判断子类是否重载了某个函数，但无法判断子类内部是否调用了[super someMethod]，所以目前先不对子类做处理
          4、未对子类进行处理的情况下，如果子类调用了[super someMethod]或未重载父类方法将会正常显示，否则子类的页面将无法显示结构
-         5、如果子类未重载方法，class_getInstanceMethod获取的将是父类的实现，父类的实现目前可能已被交换为SwizzeIMP,此时再交换的话，也会出现问题。。
          */
         
         //综上有两种建议：1、不使用继承实现delegate和dataSource的方法 2、使用了继承在子类重载的话要调用[super someMethod]
@@ -305,6 +312,11 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
                 swizzedData[[self getUniqueStr:NSStringFromClass([oriObj class])  sel:selStr]] = @(YES);
             }
         }
+        
+//        [oriObj aspect_hookSelector:sel withOptions:AspectPositionInstead usingBlock:^(id<AspectInfo> aspectInfo) {
+//
+//
+//        } error:nil];
     }
     
     
@@ -329,7 +341,7 @@ BOOL __CHD_Instance_Transition_Swizzle(Class originalClass,SEL originalSelector,
             //刷新当前listView
             [listView performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:NO];
             
-            //刷新tableHeaderView、tableFooterView
+            //刷新tableHederView、tableFooterView
             if ([listView isKindOfClass:[UITableView class]]) {
                 UIView *tabelHeader = [(UITableView *)listView tableHeaderView];
                 if (tabelHeader) {
@@ -415,7 +427,7 @@ static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
 
 
 #pragma mark - UITableView (CHD_Structure)
-@implementation UITableView (CHD_Structure)
+@implementation UITableViewHDStructure
 - (void)CHD_setDelegate:(id)delegate
 {
     if (delegate) {
@@ -514,7 +526,7 @@ static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
 //CollectionView
 #pragma mark - UICollectionView (CHD_Structure)
 
-@implementation UICollectionView (CHD_Structure)
+@implementation UICollectionViewHDStructure
 
 - (void)CHD_setDelegate:(id)delegate
 {
@@ -549,12 +561,78 @@ static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
 
 @implementation CHD_CollectionHelper
 
++ (NSAttributedString*)hoverAtt:(NSIndexPath*)indexPath cell:(UICollectionViewCell*)cell cacheToObj:(NSObject*)target
+{
+    static char *HDListViewHoverTextCacheKey;
+    NSMutableDictionary *hoverCache = objc_getAssociatedObject(target, &HDListViewHoverTextCacheKey);
+    if (!hoverCache) {
+        hoverCache = @{}.mutableCopy;
+        objc_setAssociatedObject(target, &HDListViewHoverTextCacheKey, hoverCache, OBJC_ASSOCIATION_RETAIN);
+    }
+    NSString *key = [NSString stringWithFormat:@"%zd-%zd",indexPath.section,indexPath.item];
+    NSAttributedString *result = hoverCache[key];
+    if (!result) {
+        result = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",NSStringFromClass([cell class]),@(indexPath.section),@(indexPath.item)] textColor:chd_collection_text_color backGroundColor:[chd_collection_cell_color colorWithAlphaComponent:chd_collection_bg_alpha]];
+        hoverCache[key] = result;
+    }
+    return result;
+}
+- (void)someMthond
+{
+    
+}
 - (__kindof UICollectionViewCell *)CHD_collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    UICollectionViewCell *cell = [self CHD_collectionView:collectionView cellForItemAtIndexPath:indexPath];
+    static BOOL isSHowTime = NO;
+    __block UICollectionViewCell *cell = nil;
+    
+    
+    if (isSHowTime) {
+//dispatch_benchmark 为系统私有API，不建议线上使用
+
+        //        //方法交换后需要注意一个问题，此处的代码中的self代表的是 UICollectionView的delegate
+//        //此处的self不是CHD_CollectionHelper。因此 此处调用[self someMthond]; 编译不报错，运行时会报找不到方法
+//        uint64_t dispatch_benchmark(size_t count, void (^block)(void));
+//        uint64_t ns =  dispatch_benchmark(1, ^{
+//            cell = [self CHD_collectionView:collectionView cellForItemAtIndexPath:indexPath];
+//        });
+//
+//        double currentTime = ns/(pow(10, 6));
+//#ifdef DEBUG
+//        printf("cellForItemAtIndexPath----本次时间%lf \n",currentTime);
+//#endif
+//
+//        static char *HDListViewCountKey;
+//        static char *HDListViewScrollTotalTimeKey;
+//
+//        NSNumber *numCount = objc_getAssociatedObject(self, &HDListViewCountKey);
+//        NSInteger count = 1;
+//        if (numCount) {
+//            count = numCount.integerValue;
+//        }
+//        double totalTime = 0;
+//        NSNumber *numTotal = objc_getAssociatedObject(self, &HDListViewScrollTotalTimeKey);
+//        if (numCount) {
+//            totalTime = numTotal.doubleValue;
+//        }
+//        totalTime += currentTime;
+//        double eveTime = (totalTime)/count;
+//#ifdef DEBUG
+//        printf("cellForItemAtIndexPath----平均时间%lf \n",eveTime);
+//#endif
+//        count++;
+//
+//        objc_setAssociatedObject(self, &HDListViewCountKey, @(count), OBJC_ASSOCIATION_RETAIN);
+//        objc_setAssociatedObject(self, &HDListViewScrollTotalTimeKey, @(totalTime), OBJC_ASSOCIATION_RETAIN);
+    }else{
+        cell = [self CHD_collectionView:collectionView cellForItemAtIndexPath:indexPath];
+    }
+    
+
     UILabel *hover = [cell hoverView:chd_collection_cell_color];
-    hover.attributedText = [CHD_MustrHelper getMustr:[NSString stringWithFormat:@"%@++%@++%@",NSStringFromClass([cell class]),@(indexPath.section),@(indexPath.item)] textColor:chd_collection_text_color backGroundColor:[chd_collection_cell_color colorWithAlphaComponent:chd_collection_bg_alpha]];
+    hover.attributedText = [CHD_CollectionHelper hoverAtt:indexPath cell:cell cacheToObj:self];
     hover.hidden = ![CHD_HookHelper shareInstance].is_open_chdCollection;
+    
     return cell;
 }
 
@@ -577,6 +655,9 @@ static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
     if ([elementKind isEqualToString:UICollectionElementKindSectionFooter]) {
         sectionViewColor = chd_collection_footer_color;
         Kind = @"Footer";
+    }else if ([elementKind isEqualToString:@"HDDecorationViewKind"]){
+        Kind = @"Decoration(装饰)";
+        sectionViewColor = chd_collection_decoration_color;
     }
     UILabel *hover = [view hoverView:sectionViewColor];
     
@@ -592,6 +673,9 @@ static const void * CHDHOVERLABELKEY = "CHDHOVERLABELKEY";
     if ([elementKind isEqualToString:UICollectionElementKindSectionFooter]) {
         sectionViewColor = chd_collection_footer_color;
         Kind = @"Footer";
+    }else if ([elementKind isEqualToString:@"HDDecorationViewKind"]){
+        Kind = @"Decoration(装饰)";
+        sectionViewColor = chd_collection_decoration_color;
     }
     UILabel *hover = [view hoverView:sectionViewColor];
     

@@ -1,5 +1,6 @@
 
 # CHD_ListView_Structure
+## 推荐一下[HDCollectionView](https://github.com/donggelaile/HDCollectionView) 近期写的数据驱动的滑动列表组件。基于flexBox,支持各种对齐方式、瀑布流、指定悬浮、分段布局、横向滑动等等
 ## 前言
 大多数的iOS工程中，50%以上的页面是由**UITableView**或**UICollectionView**搭建的，这里统称为**ListView**。当我们接手已有项目时，我们如何快速的理清每个**ListView**的结构。或者，当我们自己写的某个页面过去很长时间时，产品过来告诉我们某个页面的某个位置需要调整，可能自己也是依稀记得哪部分是段头，哪部分是断尾，总要花一些时间来对应相应的区块。**CHD_ListView_Structure**正是为了让你快速的区分每个**ListView**的页面结构而生的。
 ## 使用
